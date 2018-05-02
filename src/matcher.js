@@ -3,7 +3,7 @@
 const {List} = require('immutable');
 
 
-class Pattern {
+class PatternBase {
     _predicator: any => boolean;
 
     constructor(predicate: any => boolean) {
@@ -14,24 +14,41 @@ class Pattern {
         return this._predicator(src);
     }
 
-
-    static create(predicate: ((any => boolean ) | boolean)) {
-        if (predicate instanceof Function) {
-            return new Pattern(predicate);
-        } else if (typeof predicate === 'boolean') {
-            // $FlowFixMe
-            return new Pattern(x => predicate);
-        } else {
-            throw 'bad pattern init';
-        }
+    static create(predicate: any) {
+        throw 'please implement create function';
     }
 }
 
-class ArrayExactlyPattern extends Pattern {
-    patterns: Array<Pattern>;
+class SimplePattern extends PatternBase {
+    static create(predicate: any) {
+        console.log('create ---', predicate);
+        if (predicate instanceof Function) {
+            return new PatternBase(predicate);
+        } else if (typeof predicate === 'boolean') {
+            // $FlowFixMe
+            return new PatternBase(x => predicate);
+        } else {
+            throw 'bad pattern init' + predicate.toString();
+        }
+    }
 
-    constructor(patterns: Array<Pattern>) {
-        super(src => {
+}
+
+
+class ArrayExactlyPattern extends PatternBase {
+    patterns: Array<PatternBase>;
+
+    constructor(patterns: Array<PatternBase>) {
+        super(ArrayExactlyPattern._get_predicate_function(patterns));
+        this.patterns = patterns;
+    }
+
+    static create(patterns: Array<PatternBase>) {
+        return new ArrayExactlyPattern(patterns);
+    }
+
+    static _get_predicate_function(patterns: Array<PatternBase>) {
+        return (src) => {
             if (!(src instanceof List || src instanceof Array)) {
                 return false;
             }
@@ -46,18 +63,25 @@ class ArrayExactlyPattern extends Pattern {
                 ind += 1;
             });
             return true;
-        });
-        this.patterns = patterns;
+        };
     }
 }
 
-class ObjectPattern extends Pattern {
+class ObjectPattern extends PatternBase {
     obj: Object;
 
     constructor(obj: Object) {
-        // $FlowFixMe
-        super(src => Object.entries(obj).every(([k, v]) => src.hasOwnProperty(k) && v.predicate(src[k])));
+        super(ObjectPattern._get_predicate_function(obj));
         this.obj = obj;
+    }
+
+    static create(obj: Object) {
+        return new ObjectPattern(obj);
+    }
+
+    static _get_predicate_function(obj: Object) {
+        // $FlowFixMe
+        return src => Object.entries(obj).every(([k, v]) => src.hasOwnProperty(k) && v.predicate(src[k]));
     }
 }
 
@@ -80,25 +104,25 @@ class Mapper {
 
 
 class PatternCase {
-    pattern: Pattern;
+    pattern: PatternBase;
     mapper: Mapper;
 
-    constructor(pattern: Pattern, mapper: Mapper) {
+    constructor(pattern: PatternBase, mapper: Mapper) {
         this.pattern = pattern;
         this.mapper = mapper;
     }
 }
 
 
-const Case = (predicate: boolean | (any => boolean) | Pattern, mapper: any | (any => any) | Mapper) => {
-    if ((predicate instanceof Pattern) && (mapper instanceof Mapper)) {
+const Case = (predicate: boolean | (any => boolean) | PatternBase, mapper: any | (any => any) | Mapper) => {
+    if ((predicate instanceof PatternBase) && (mapper instanceof Mapper)) {
         return new PatternCase(predicate, mapper);
-    } else if (!(predicate instanceof Pattern) && (mapper instanceof Mapper)) {
-        return new PatternCase(Pattern.create(predicate), mapper);
-    } else if ((predicate instanceof Pattern) && !(mapper instanceof Mapper)) {
+    } else if (!(predicate instanceof PatternBase) && (mapper instanceof Mapper)) {
+        return new PatternCase(PatternBase.create(predicate), mapper);
+    } else if ((predicate instanceof PatternBase) && !(mapper instanceof Mapper)) {
         return new PatternCase(predicate, Mapper.create(mapper));
-    } else if (!(predicate instanceof Pattern) && !(mapper instanceof Mapper)) {
-        return new PatternCase(Pattern.create(predicate), Mapper.create(mapper));
+    } else if (!(predicate instanceof PatternBase) && !(mapper instanceof Mapper)) {
+        return new PatternCase(PatternBase.create(predicate), Mapper.create(mapper));
     } else {
         throw 'bad init';
     }
@@ -106,10 +130,24 @@ const Case = (predicate: boolean | (any => boolean) | Pattern, mapper: any | (an
 
 
 const P = {
-    AcceptAllPattern: Pattern.create(true),
-    string: Pattern.create(x => typeof x === 'string'),
-    greaterThanTen: Pattern.create(x => typeof x === 'number' && x > 10),
-    nonEmptyArr: Pattern.create(x => x instanceof Array && x.length > 0),
+    AcceptAllPattern: SimplePattern.create(true),
+    string: SimplePattern.create(x => typeof x === 'string'),
+    greaterThanTen: SimplePattern.create(x => typeof x === 'number' && x > 10),
+    nonEmptyArr: SimplePattern.create(x => x instanceof Array && x.length > 0),
+
+    create: (p) => {
+        if (p instanceof PatternBase) {
+            return p;
+        } else if (p instanceof Array) {
+            console.log('here');
+            return ArrayExactlyPattern.create(p);
+        } else if (p instanceof Function) {
+            return SimplePattern.create(p);
+        } else if (p instanceof Object) {
+            return ObjectPattern.create(p);
+        }
+        throw 'not supported yet !';
+    }
 };
 
 
@@ -147,18 +185,13 @@ class Matcher {
             if (e instanceof PatternCase) {
                 buffer.push(e);
             } else if (temp !== null) {
-                console.log('pattern ', temp);
-                console.log('mapper ', e);
+                console.log('pattern---- ', temp);
+                console.log('mapper----- ', e);
                 buffer.push(Case(temp, e));
                 temp = null;
             } else if (temp === null) {
-                if (e instanceof Pattern || e instanceof Function) {
-                    temp = e;
-                } else if (e instanceof Array) {
-                    temp = new ArrayExactlyPattern(e);
-                } else if (e instanceof Object) {
-                    temp = new ObjectPattern(e);
-                }
+                console.log(e);
+                temp = P.create(e);
             } else {
                 throw 'bad init';
             }
@@ -168,28 +201,32 @@ class Matcher {
 }
 
 
+// Matcher.create([[x => x === 1, x => x === 2], 'xixi']);
+
+
 const matcher = Matcher.create([
     P.string, 'Your input is a string',
     x => x === 100, x => x + 200,
     P.greaterThanTen, 'This is a number and is greater than ten',
     [P.string, P.greaterThanTen], 'Complicated array!',
-    P.nonEmptyArr, 'nonempty array', {
+    P.nonEmptyArr, 'nonempty array',
+    {
         status: P.greaterThanTen,
         content: P.string
-    }, src => 'not 404 and have content! status code' + src.status.toString(),
+    }, src => ('not 404 and have content! status code' + src.status.toString()),
     Cases.AcceptAllAlwaysThrowCase,
 ]);
 
-//
-// console.log(matcher.match(20));
-// console.log(matcher.match('str'));
-// console.log(matcher.match([1, 2, 3]));
-// console.log(matcher.match(100));
-// console.log(matcher.match(['hi', 233]));
+
+console.log(matcher.match(20));
+console.log(matcher.match('str'));
+console.log(matcher.match([1, 2, 3]));
+console.log(matcher.match(100));
+console.log(matcher.match(['hi', 233]));
 console.log(matcher.match({status: 200, content: 'xixi'}));
 
-// try {
-//     matcher.match(null);
-// } catch (e) {
-//     console.log('You get always throw! ' + e);
-// }
+try {
+    matcher.match(null);
+} catch (e) {
+    console.log('You get always throw! ' + e);
+}
