@@ -1,7 +1,5 @@
 // @flow
 
-const {List} = require('immutable');
-
 
 class PatternBase {
     _predicator: any => boolean;
@@ -21,17 +19,18 @@ class PatternBase {
 
 class SimplePattern extends PatternBase {
     static create(predicate: any) {
-        console.log('create ---', predicate);
         if (predicate instanceof Function) {
             return new PatternBase(predicate);
-        } else if (typeof predicate === 'boolean') {
-            // $FlowFixMe
-            return new PatternBase(x => predicate);
         } else {
-            throw 'bad pattern init' + predicate.toString();
+            throw 'Must init with a boolean function';
         }
     }
+}
 
+class LiteralEqualsPattern extends PatternBase {
+    static create(base_type_value: string | number | boolean) {
+        return new PatternBase(src => base_type_value === src);
+    }
 }
 
 
@@ -49,20 +48,8 @@ class ArrayExactlyPattern extends PatternBase {
 
     static _get_predicate_function(patterns: Array<PatternBase>) {
         return (src) => {
-            if (!(src instanceof List || src instanceof Array)) {
-                return false;
-            }
-            if (src instanceof List) {
-                if (src.size !== patterns.length) return false;
-            } else if (src instanceof Array) {
-                if (src.length !== patterns.length) return false;
-            }
-            let ind = 0;
-            src.forEach(p => {
-                if (!patterns[ind].predicate(p)) return false;
-                ind += 1;
-            });
-            return true;
+            if (src.length !== patterns.length) return false;
+            return Array.from(patterns.entries()).every(([ind, p]) => P.create(p).predicate(src[ind]));
         };
     }
 }
@@ -80,8 +67,7 @@ class ObjectPattern extends PatternBase {
     }
 
     static _get_predicate_function(obj: Object) {
-        // $FlowFixMe
-        return src => Object.entries(obj).every(([k, v]) => src.hasOwnProperty(k) && v.predicate(src[k]));
+        return src => Object.entries(obj).every(([prop, predicator]) => src.hasOwnProperty(prop) && P.create(predicator).predicate(src[prop]));
     }
 }
 
@@ -130,7 +116,7 @@ const Case = (predicate: boolean | (any => boolean) | PatternBase, mapper: any |
 
 
 const P = {
-    AcceptAllPattern: SimplePattern.create(true),
+    AcceptAllPattern: SimplePattern.create(x => true),
     string: SimplePattern.create(x => typeof x === 'string'),
     greaterThanTen: SimplePattern.create(x => typeof x === 'number' && x > 10),
     nonEmptyArr: SimplePattern.create(x => x instanceof Array && x.length > 0),
@@ -139,12 +125,13 @@ const P = {
         if (p instanceof PatternBase) {
             return p;
         } else if (p instanceof Array) {
-            console.log('here');
             return ArrayExactlyPattern.create(p);
         } else if (p instanceof Function) {
             return SimplePattern.create(p);
         } else if (p instanceof Object) {
             return ObjectPattern.create(p);
+        } else if (typeof p === 'string' || typeof p === 'number' || typeof p === 'boolean') {
+            return LiteralEqualsPattern.create(p);
         }
         throw 'not supported yet !';
     }
@@ -168,45 +155,46 @@ const Cases = {
 
 
 class Matcher {
-    cases: List<PatternCase>;
+    cases: Array<PatternCase>;
 
-    constructor(cases: List<PatternCase>) {
+    constructor(cases: Array<PatternCase>) {
         this.cases = cases;
     }
 
     match(src: any) {
-        return this.cases.find(c => c.pattern.predicate(src)).mapper.map(src);
+        const found = this.cases.find(c => c.pattern.predicate(src));
+        if (found) {
+            return found.mapper.map(src);
+        } else {
+            throw 'Not match!';
+        }
     };
 
     static create(items: Array<any>) {
-        const buffer = [];
+        const cases = [];
         let temp = null;
         items.forEach(e => {
             if (e instanceof PatternCase) {
-                buffer.push(e);
+                cases.push(e);
             } else if (temp !== null) {
-                console.log('pattern---- ', temp);
-                console.log('mapper----- ', e);
-                buffer.push(Case(temp, e));
+                cases.push(Case(temp, e));
                 temp = null;
             } else if (temp === null) {
-                console.log(e);
                 temp = P.create(e);
             } else {
                 throw 'bad init';
             }
         });
-        return new Matcher(List(buffer));
+        return new Matcher(cases);
     }
 }
 
 
-// Matcher.create([[x => x === 1, x => x === 2], 'xixi']);
-
-
 const matcher = Matcher.create([
+    [x => x > 100, 'xixi'], 'Literal match [>100, xixi]',
     P.string, 'Your input is a string',
     x => x === 100, x => x + 200,
+    23333, 'exactly 23333',
     P.greaterThanTen, 'This is a number and is greater than ten',
     [P.string, P.greaterThanTen], 'Complicated array!',
     P.nonEmptyArr, 'nonempty array',
@@ -220,9 +208,11 @@ const matcher = Matcher.create([
 
 console.log(matcher.match(20));
 console.log(matcher.match('str'));
+console.log(matcher.match(23333));
 console.log(matcher.match([1, 2, 3]));
 console.log(matcher.match(100));
 console.log(matcher.match(['hi', 233]));
+console.log(matcher.match([99, 'xixi']));
 console.log(matcher.match({status: 200, content: 'xixi'}));
 
 try {
