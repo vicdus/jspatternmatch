@@ -1,0 +1,21 @@
+{
+  "name": "jspatternmatch",
+  "version": "0.0.1",
+  "description": "Javascript pattern match library",
+  "dependencies": {
+    "babel-cli": "latest",
+    "babel-preset-env": "latest",
+    "babel-preset-flow": "latest",
+    "flow-bin": "latest",
+    "immutable": "4.0.0-rc.9"
+  },
+  "devDependencies": {
+    "flow-bin": "latest"
+  },
+  "scripts": {
+    "flow": "flow",
+    "build": "babel src/ -d lib/"
+  },
+  "author": "",
+  "license": "ISC"
+}
