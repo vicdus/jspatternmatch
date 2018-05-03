@@ -11,16 +11,16 @@ class env {
         throw 'abstract!';
     }
 
-    static _head() {
+    static head() {
         return env._envs[env._envs.length - 1];
     }
 
     static put(name, value) {
-        env._head()[name] = value;
+        env.head()[name] = value;
     }
 
     static dup_head() {
-        env._envs.push(Object.assign({}, env._head()));
+        env._envs.push(Object.assign({}, env.head()));
     }
 
     static pop() {
@@ -34,14 +34,8 @@ class env {
 }
 
 class PatternBase {
-    _predicator: any => boolean;
-
-    constructor(predicate: any => boolean) {
-        this._predicator = predicate;
-    }
-
     predicate(src: any): boolean {
-        return this._predicator(src);
+        throw 'do not use base predicate';
     }
 
     static create(predicate: any) {
@@ -50,7 +44,32 @@ class PatternBase {
 }
 
 
-class BindingPattern extends PatternBase {
+class SimplePattern extends PatternBase {
+    _predicator: any => boolean;
+
+    constructor(predicate: any => boolean) {
+        super();
+        this._predicator = predicate;
+    }
+
+    predicate(src: any): boolean {
+        return this._predicator(src);
+    }
+
+    static create(predicate: any) {
+        if (predicate instanceof Function) {
+            return new SimplePattern(predicate);
+        } else {
+            throw 'Must init with a boolean function';
+        }
+    }
+
+    as(name: string) {
+        return BindingPattern.create(this._predicator, name);
+    }
+}
+
+class BindingPattern extends SimplePattern {
     name: string;
     pattern: PatternBase;
 
@@ -77,24 +96,9 @@ class BindingPattern extends PatternBase {
     }
 }
 
-
-class SimplePattern extends PatternBase {
-    static create(predicate: any) {
-        if (predicate instanceof Function) {
-            return new PatternBase(predicate);
-        } else {
-            throw 'Must init with a boolean function';
-        }
-    }
-
-    as(name: string) {
-        return new BindingPattern(this, name);
-    }
-}
-
 class LiteralEqualsPattern extends SimplePattern {
     static create(base_type_value: string | number | boolean) {
-        return new PatternBase(src => base_type_value === src);
+        return new SimplePattern(src => base_type_value === src);
     }
 }
 
@@ -121,7 +125,7 @@ class ArrayExactPattern extends SimplePattern {
 
 class ArrayAllPattern extends SimplePattern {
     static create(pattern: PatternBase) {
-        return new PatternBase(src => src.every(e => pattern.predicate(e)));
+        return new SimplePattern(src => src.every(e => pattern.predicate(e)));
     }
 }
 
@@ -175,31 +179,21 @@ class PatternCase {
 
 
 const Case = (predicate: boolean | (any => boolean) | PatternBase, mapper: any | (any => any) | Mapper) => {
-    if ((predicate instanceof PatternBase) && (mapper instanceof Mapper)) {
-        return new PatternCase(predicate, mapper);
-    } else if (!(predicate instanceof PatternBase) && (mapper instanceof Mapper)) {
-        return new PatternCase(PatternBase.create(predicate), mapper);
-    } else if ((predicate instanceof PatternBase) && !(mapper instanceof Mapper)) {
-        return new PatternCase(predicate, Mapper.create(mapper));
-    } else if (!(predicate instanceof PatternBase) && !(mapper instanceof Mapper)) {
-        return new PatternCase(PatternBase.create(predicate), Mapper.create(mapper));
-    } else {
-        throw 'bad init';
-    }
+    return new PatternCase(P.create(predicate), Mapper.create(mapper));
 };
 
 
-const P = {
-    AcceptAllPattern: SimplePattern.create(x => true),
-    string: SimplePattern.create(x => typeof x === 'string'),
-    greaterThanTen: SimplePattern.create(x => typeof x === 'number' && x > 10),
-    nonEmptyArr: SimplePattern.create(x => x instanceof Array && x.length > 0),
+class P {
+    static AcceptAllPattern = SimplePattern.create(x => true);
+    static string = SimplePattern.create(x => typeof x === 'string');
+    static greaterThanTen = SimplePattern.create(x => typeof x === 'number' && x > 10);
+    static nonEmptyArr = SimplePattern.create(x => x instanceof Array && x.length > 0);
 
-    create: (p) => {
+    static create(p) {
         if (p instanceof PatternBase) {
+            if (p.constructor.name === PatternBase.name) throw 'do not use pattern base directly';
             return p;
         } else if (p instanceof Array) {
-            // $FlowFixMe
             return ArrayExactPattern.create(p);
         } else if (p instanceof Function) {
             return SimplePattern.create(p);
@@ -211,8 +205,13 @@ const P = {
             return LiteralEqualsPattern.create(p);
         }
         throw 'not supported yet !';
-    },
-};
+    };
+
+    static as(p, name) {
+        // $FlowFixMe
+        return P.create(p).as(name);
+    }
+}
 
 
 const Mappers = {
@@ -258,8 +257,8 @@ class Matcher {
                 cases.push(e);
             } else if (temp !== null) {
                 // temp is pattern, e is mapper
-                temp = P.create(temp);
-                e = Mapper.create(e);
+                // temp = P.create(temp);
+                // e = Mapper.create(e);
                 cases.push(Case(temp, e));
                 temp = null;
             } else if (temp === null) {
@@ -277,11 +276,14 @@ const m = Matcher.create([
     '123', x => console.log(x),
     ['@whatever', '@anything'], x => console.log(x),
     {code: '@code'}, x => console.log(x),
-    '@final', x => console.log(x)]);
+    P.as(x => x === 100, 'goodname'), x => console.log(x),
+    '@final', x => console.log(x)
+]);
 
+
+m.match(100);
 m.match('123');
-
-m.match([123, 456]);
+m.match([333, 999]);
 
 
 const matcher = Matcher.create([
@@ -293,9 +295,9 @@ const matcher = Matcher.create([
     [P.string, P.greaterThanTen], 'Complicated array!',
     P.nonEmptyArr, 'nonempty array',
     {
-        status: P.greaterThanTen,
-        content: P.string
-    }, src => ('not 404 and have content! status code' + src.status.toString()),
+        status: 200,
+        content: P.string.as('ct')
+    }, src => ('200 and have content! status code' + src.ct),
     Cases.AcceptAllAlwaysThrowCase,
 ]);
 
