@@ -1,7 +1,10 @@
 // @flow
 
 
+// predicator: a Pattern, literal constant or a boolean function
+// Mapper: A Mapper, literal value, any => any function
 class PatternBase {
+    _env: Object;
     _predicator: any => boolean;
 
     constructor(predicate: any => boolean) {
@@ -34,16 +37,16 @@ class LiteralEqualsPattern extends PatternBase {
 }
 
 
-class ArrayExactlyPattern extends PatternBase {
+class ArrayExactPattern extends PatternBase {
     patterns: Array<PatternBase>;
 
     constructor(patterns: Array<PatternBase>) {
-        super(ArrayExactlyPattern._get_predicate_function(patterns));
+        super(ArrayExactPattern._get_predicate_function(patterns));
         this.patterns = patterns;
     }
 
     static create(patterns: Array<PatternBase>) {
-        return new ArrayExactlyPattern(patterns);
+        return new ArrayExactPattern(patterns);
     }
 
     static _get_predicate_function(patterns: Array<PatternBase>) {
@@ -53,6 +56,38 @@ class ArrayExactlyPattern extends PatternBase {
         };
     }
 }
+
+class ArrayAllPattern extends PatternBase {
+    static create(pattern: PatternBase) {
+        return new PatternBase(src => src.every(e => pattern.predicate(e)));
+    }
+}
+
+
+class BindingPattern extends PatternBase {
+    _env: Object;
+    name_without_at: string;
+
+    constructor(name_without_at: string) {
+        super(src => true);
+        this._env = {};
+        this.name_without_at = name_without_at;
+    }
+
+    predicate(src: any): boolean {
+        this._env[this.name_without_at] = src;
+        return true;
+    }
+
+    static create(name_with_at: string) {
+        if (name_with_at[0] === '@') {
+            return new BindingPattern(name_with_at.slice(1));
+        } else {
+            throw 'not binding!';
+        }
+    }
+}
+
 
 class ObjectPattern extends PatternBase {
     obj: Object;
@@ -67,12 +102,15 @@ class ObjectPattern extends PatternBase {
     }
 
     static _get_predicate_function(obj: Object) {
-        return src => Object.entries(obj).every(([prop, predicator]) => src.hasOwnProperty(prop) && P.create(predicator).predicate(src[prop]));
+        return src => Object.entries(obj).every(([prop_name, predicator]) =>
+            src.hasOwnProperty(prop_name) &&
+            P.create(predicator).predicate(src[prop_name]));
     }
 }
 
 
 class Mapper {
+    _env: Object;
     map: any => any;
 
     constructor(map: (any => any) | any) {
@@ -125,11 +163,13 @@ const P = {
         if (p instanceof PatternBase) {
             return p;
         } else if (p instanceof Array) {
-            return ArrayExactlyPattern.create(p);
+            return ArrayExactPattern.create(p);
         } else if (p instanceof Function) {
             return SimplePattern.create(p);
         } else if (p instanceof Object) {
             return ObjectPattern.create(p);
+        } else if (typeof p === 'string' && p[0] === '@') {
+            return BindingPattern.create(p);
         } else if (typeof p === 'string' || typeof p === 'number' || typeof p === 'boolean') {
             return LiteralEqualsPattern.create(p);
         }
@@ -177,6 +217,13 @@ class Matcher {
             if (e instanceof PatternCase) {
                 cases.push(e);
             } else if (temp !== null) {
+                // temp is pattern, e is mapper
+                temp = P.create(temp);
+                e = Mapper.create(e);
+
+                if (temp instanceof BindingPattern) {
+                    e._env = temp._env;
+                }
                 cases.push(Case(temp, e));
                 temp = null;
             } else if (temp === null) {
@@ -202,6 +249,7 @@ const matcher = Matcher.create([
         status: P.greaterThanTen,
         content: P.string
     }, src => ('not 404 and have content! status code' + src.status.toString()),
+    '@xixi', 'binding!',
     Cases.AcceptAllAlwaysThrowCase,
 ]);
 
@@ -214,6 +262,7 @@ console.log(matcher.match(100));
 console.log(matcher.match(['hi', 233]));
 console.log(matcher.match([99, 'xixi']));
 console.log(matcher.match({status: 200, content: 'xixi'}));
+
 
 try {
     matcher.match(null);
