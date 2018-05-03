@@ -2,9 +2,38 @@
 
 
 // predicator: a Pattern, literal constant or a boolean function
-// Mapper: A Mapper, literal value, any => any function
+// map: A Mapper, literal value, any => any function
+
+class env {
+    static _envs = [{}];
+
+    constructor() {
+        throw 'abstract!';
+    }
+
+    static _head() {
+        return env._envs[env._envs.length - 1];
+    }
+
+    static put(name, value) {
+        env._head()[name] = value;
+    }
+
+    static dup_head() {
+        env._envs.push(Object.assign({}, env._head()));
+    }
+
+    static pop() {
+        return env._envs.pop();
+    }
+
+    static flush() {
+        env._envs = [{}];
+    }
+
+}
+
 class PatternBase {
-    _env: Object;
     _predicator: any => boolean;
 
     constructor(predicate: any => boolean) {
@@ -20,6 +49,35 @@ class PatternBase {
     }
 }
 
+
+class BindingPattern extends PatternBase {
+    name: string;
+    pattern: PatternBase;
+
+    constructor(pattern: PatternBase, name: string) {
+        super(src => pattern.predicate(src));
+        this.name = name;
+        this.pattern = pattern;
+    }
+
+    predicate(src: any): boolean {
+        if (this.pattern.predicate(src)) {
+            env.dup_head();
+            env.put(this.name, src);
+            return true;
+        } else {
+            env.flush();
+            return false;
+        }
+    }
+
+    // $FlowFixMe
+    static create(predicator: any, name: string) {
+        return new BindingPattern(P.create(predicator), name);
+    }
+}
+
+
 class SimplePattern extends PatternBase {
     static create(predicate: any) {
         if (predicate instanceof Function) {
@@ -28,16 +86,20 @@ class SimplePattern extends PatternBase {
             throw 'Must init with a boolean function';
         }
     }
+
+    as(name: string) {
+        return new BindingPattern(this, name);
+    }
 }
 
-class LiteralEqualsPattern extends PatternBase {
+class LiteralEqualsPattern extends SimplePattern {
     static create(base_type_value: string | number | boolean) {
         return new PatternBase(src => base_type_value === src);
     }
 }
 
 
-class ArrayExactPattern extends PatternBase {
+class ArrayExactPattern extends SimplePattern {
     patterns: Array<PatternBase>;
 
     constructor(patterns: Array<PatternBase>) {
@@ -57,39 +119,14 @@ class ArrayExactPattern extends PatternBase {
     }
 }
 
-class ArrayAllPattern extends PatternBase {
+class ArrayAllPattern extends SimplePattern {
     static create(pattern: PatternBase) {
         return new PatternBase(src => src.every(e => pattern.predicate(e)));
     }
 }
 
 
-class BindingPattern extends PatternBase {
-    _env: Object;
-    name_without_at: string;
-
-    constructor(name_without_at: string) {
-        super(src => true);
-        this._env = {};
-        this.name_without_at = name_without_at;
-    }
-
-    predicate(src: any): boolean {
-        this._env[this.name_without_at] = src;
-        return true;
-    }
-
-    static create(name_with_at: string) {
-        if (name_with_at[0] === '@') {
-            return new BindingPattern(name_with_at.slice(1));
-        } else {
-            throw 'not binding!';
-        }
-    }
-}
-
-
-class ObjectPattern extends PatternBase {
+class ObjectPattern extends SimplePattern {
     obj: Object;
 
     constructor(obj: Object) {
@@ -110,7 +147,6 @@ class ObjectPattern extends PatternBase {
 
 
 class Mapper {
-    _env: Object;
     map: any => any;
 
     constructor(map: (any => any) | any) {
@@ -163,18 +199,19 @@ const P = {
         if (p instanceof PatternBase) {
             return p;
         } else if (p instanceof Array) {
+            // $FlowFixMe
             return ArrayExactPattern.create(p);
         } else if (p instanceof Function) {
             return SimplePattern.create(p);
         } else if (p instanceof Object) {
             return ObjectPattern.create(p);
         } else if (typeof p === 'string' && p[0] === '@') {
-            return BindingPattern.create(p);
+            return BindingPattern.create(x => true, p.slice(1));
         } else if (typeof p === 'string' || typeof p === 'number' || typeof p === 'boolean') {
             return LiteralEqualsPattern.create(p);
         }
         throw 'not supported yet !';
-    }
+    },
 };
 
 
@@ -204,7 +241,10 @@ class Matcher {
     match(src: any) {
         const found = this.cases.find(c => c.pattern.predicate(src));
         if (found) {
-            return found.mapper.map(src);
+            const cur_env = env.pop();
+            const res = found.mapper.map(Object.keys(cur_env).length === 0 ? src : cur_env);
+            env.flush();
+            return res;
         } else {
             throw 'Not match!';
         }
@@ -220,10 +260,6 @@ class Matcher {
                 // temp is pattern, e is mapper
                 temp = P.create(temp);
                 e = Mapper.create(e);
-
-                if (temp instanceof BindingPattern) {
-                    e._env = temp._env;
-                }
                 cases.push(Case(temp, e));
                 temp = null;
             } else if (temp === null) {
@@ -235,6 +271,17 @@ class Matcher {
         return new Matcher(cases);
     }
 }
+
+
+const m = Matcher.create([
+    '123', x => console.log(x),
+    ['@whatever', '@anything'], x => console.log(x),
+    {code: '@code'}, x => console.log(x),
+    '@final', x => console.log(x)]);
+
+m.match('123');
+
+m.match([123, 456]);
 
 
 const matcher = Matcher.create([
@@ -249,7 +296,6 @@ const matcher = Matcher.create([
         status: P.greaterThanTen,
         content: P.string
     }, src => ('not 404 and have content! status code' + src.status.toString()),
-    '@xixi', 'binding!',
     Cases.AcceptAllAlwaysThrowCase,
 ]);
 
