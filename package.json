@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "description": "Javascript pattern match library",
   "dependencies": {
-    "babel-preset-env": "latest",
+    "babel-preset-env": "^1.6.1",
     "flow-bin": "latest",
     "immutable": "4.0.0-rc.9"
   },

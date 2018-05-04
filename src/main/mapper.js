@@ -29,3 +29,6 @@ const Mappers = {
     }),
 };
 
+module.exports.Mapper = Mapper;
+
+module.exports.Mappers = Mappers;

@@ -1,12 +1,9 @@
 // @flow
 
-require('./mapper.js');
-require('./pattern.js');
-
-
-import typeof PatternBase from './pattern.js';
-import typeof Mapper from './mapper.js';
-
+const Mapper = require('./mapper.js').Mapper;
+const Mappers = require('./mapper.js').Mappers;
+const PatternBase = require('./pattern.js').PatternBase;
+const P = require('./pattern.js').P;
 
 class PatternCase {
     pattern: PatternBase;
@@ -28,4 +25,5 @@ const Cases = {
     AcceptAllAlwaysThrowCase: Case(P.AcceptAllPattern, Mappers.AlwaysThrowMapper),
 };
 
-module.exports = Case;
+module.exports.Case = Case;
+module.exports.PatternCase = PatternCase;

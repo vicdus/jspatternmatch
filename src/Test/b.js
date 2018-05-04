@@ -1,6 +1,25 @@
 // @flow
-import type Foo, {MyObject, MyInterface} from './a.js';
 
-const A = {};
 
-console.log(A instanceof MyObject);
+const A = require('./a.js');
+
+
+const X = (p: A) => {
+    console.log('xixi');
+};
+
+
+A.getInstance().foo();
+
+X(A.getInstance());
+
+
+
+
+
+
+
+
+
+
+

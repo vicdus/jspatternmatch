@@ -1,8 +1,17 @@
 // @flow
-export default class Foo {
-};
-export type MyObject = { /* ... */ };
 
-export interface MyInterface {
-    /* ... */
-};
+
+class A {
+    constructor() {
+    }
+
+    foo() {
+        console.log('I am A');
+    }
+
+    static getInstance(): A {
+        return new A();
+    }
+}
+
+module.exports = A;
