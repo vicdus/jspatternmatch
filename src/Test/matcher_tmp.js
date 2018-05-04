@@ -2,7 +2,7 @@
 
 
 // predicator: a Pattern, literal constant or a boolean function
-// map: A Mapper, literal value, any => any function
+// map_func: A Mapper, literal value, any => any function
 
 class env {
     static _envs = [{}];
@@ -112,20 +112,32 @@ class ArrayExactPattern extends SimplePattern {
     }
 
     static create(patterns: Array<PatternBase>) {
-        return new ArrayExactPattern(patterns);
+        if (patterns instanceof Array) {
+            return new ArrayExactPattern(patterns);
+        } else {
+            throw 'Must init with Array of patterns!';
+        }
+
     }
 
     static _get_predicate_function(patterns: Array<PatternBase>) {
-        return (src) => {
-            if (src.length !== patterns.length) return false;
-            return Array.from(patterns.entries()).every(([ind, p]) => P.create(p).predicate(src[ind]));
-        };
+        if (patterns instanceof Array) {
+            return (src) => {
+                return src instanceof Array &&
+                    src.length !== patterns.length &&
+                    Array.from(patterns.entries()).every(([ind, p]) => P.create(p).predicate(src[ind]));
+            };
+        } else {
+            throw 'Must init with Array of patterns!';
+        }
     }
 }
 
 class ArrayAllPattern extends SimplePattern {
     static create(pattern: PatternBase) {
-        return new SimplePattern(src => src.every(e => pattern.predicate(e)));
+        return new SimplePattern(src =>
+            src instanceof Array &&
+            src.every(e => pattern.predicate(e)));
     }
 }
 
@@ -144,6 +156,7 @@ class ObjectPattern extends SimplePattern {
 
     static _get_predicate_function(obj: Object) {
         return src => Object.entries(obj).every(([prop_name, predicator]) =>
+            src instanceof Object &&
             src.hasOwnProperty(prop_name) &&
             P.create(predicator).predicate(src[prop_name]));
     }
@@ -151,18 +164,20 @@ class ObjectPattern extends SimplePattern {
 
 
 class Mapper {
-    map: any => any;
+    map_func: any => any;
 
     constructor(map: (any => any) | any) {
-        if (typeof map === 'function') {
-            this.map = map;
-        } else {
-            this.map = x => map;
-        }
+        this.map_func = map;
     }
 
-    static create(mapper: (any => any) | any) {
-        return new Mapper(mapper);
+    static create(map: Mapper | (any => any) | any) {
+        if (map instanceof Mapper) {
+            return map;
+        } else if (map instanceof Function) {
+            return new Mapper(map);
+        } else {
+            return new Mapper(x => map);
+        }
     }
 }
 
@@ -189,7 +204,7 @@ class P {
     static greaterThanTen = SimplePattern.create(x => typeof x === 'number' && x > 10);
     static nonEmptyArr = SimplePattern.create(x => x instanceof Array && x.length > 0);
 
-    static create(p) {
+    static create(p: any) {
         if (p instanceof PatternBase) {
             if (p.constructor.name === PatternBase.name) throw 'do not use pattern base directly';
             return p;
@@ -201,7 +216,7 @@ class P {
             return ObjectPattern.create(p);
         } else if (typeof p === 'string' && p[0] === '@') {
             return BindingPattern.create(x => true, p.slice(1));
-        } else if (typeof p === 'string' || typeof p === 'number' || typeof p === 'boolean') {
+        } else if (typeof p === 'string' || typeof p === 'number' || typeof p === 'boolean' || p === null || p === undefined) {
             return LiteralEqualsPattern.create(p);
         }
         throw 'not supported yet !';
@@ -240,8 +255,9 @@ class Matcher {
     match(src: any) {
         const found = this.cases.find(c => c.pattern.predicate(src));
         if (found) {
+            console.log('mapfunc = ', found.mapper.map_func);
             const cur_env = env.pop();
-            const res = found.mapper.map(Object.keys(cur_env).length === 0 ? src : cur_env);
+            const res = found.mapper.map_func(Object.keys(cur_env).length === 0 ? src : cur_env);
             env.flush();
             return res;
         } else {
@@ -271,19 +287,19 @@ class Matcher {
     }
 }
 
-
-const m = Matcher.create([
-    '123', x => console.log(x),
-    ['@whatever', '@anything'], x => console.log(x),
-    {code: '@code'}, x => console.log(x),
-    P.as(x => x === 100, 'goodname'), x => console.log(x),
-    '@final', x => console.log(x)
-]);
-
-
-m.match(100);
-m.match('123');
-m.match([333, 999]);
+//
+// const m = Matcher.create([
+//     '123', x => console.log(x),
+//     ['@whatever', '@anything'], x => console.log(x),
+//     {code: '@code'}, x => console.log(x),
+//     P.as(x => x === 100, 'goodname'), x => console.log(x),
+//     '@final', x => console.log(x)
+// ]);
+//
+//
+// m.match(100);
+// m.match('123');
+// m.match([333, 999]);
 
 
 const matcher = Matcher.create([
@@ -302,18 +318,20 @@ const matcher = Matcher.create([
 ]);
 
 
-console.log(matcher.match(20));
-console.log(matcher.match('str'));
-console.log(matcher.match(23333));
-console.log(matcher.match([1, 2, 3]));
-console.log(matcher.match(100));
-console.log(matcher.match(['hi', 233]));
-console.log(matcher.match([99, 'xixi']));
-console.log(matcher.match({status: 200, content: 'xixi'}));
-
+// console.log(matcher.match(20));
+// console.log(matcher.match('str'));
+// console.log(matcher.match(23333));
+// console.log(matcher.match([1, 2, 3]));
+// console.log(matcher.match(100));
+// console.log(matcher.match(['hi', 233]));
+// console.log(matcher.match([99, 'xixi']));
+// console.log(matcher.match({status: 200, content: 'xixi'}));
+//
 
 try {
-    matcher.match(null);
+    console.log(matcher.match(null));
 } catch (e) {
     console.log('You get always throw! ' + e);
 }
+
+module.exports.acd = 123;
