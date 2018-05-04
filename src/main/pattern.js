@@ -1,6 +1,6 @@
 // @flow
 
-const env = require('./env.js');
+const env = require('./env');
 
 class PatternBase {
     predicate(src: any): boolean {

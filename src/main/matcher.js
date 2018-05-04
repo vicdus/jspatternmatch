@@ -1,9 +1,9 @@
 // @flow
 
-const PatternCase = require('./case.js').PatternCase;
-const Case = require('./case.js').Case;
+const PatternCase = require('./case').PatternCase;
+const Case = require('./case').Case;
 const env = require('./env');
-const P = require('./pattern.js').P;
+const P = require('./pattern').P;
 
 
 class Matcher {

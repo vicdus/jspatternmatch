@@ -7,10 +7,11 @@
     "flow-bin": "latest",
     "immutable": "4.0.0-rc.9"
   },
+  "main": "index.js",
   "devDependencies": {
-    "babel-cli": "^6.26.0",
-    "babel-plugin-transform-class-properties": "^6.24.1",
-    "babel-preset-flow": "^6.23.0",
+    "babel-cli": "latest",
+    "babel-plugin-transform-class-properties": "latest",
+    "babel-preset-flow": "latest",
     "flow-bin": "latest"
   },
   "scripts": {

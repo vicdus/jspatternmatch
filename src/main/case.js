@@ -1,9 +1,9 @@
 // @flow
 
-const Mapper = require('./mapper.js').Mapper;
-const Mappers = require('./mapper.js').Mappers;
-const PatternBase = require('./pattern.js').PatternBase;
-const P = require('./pattern.js').P;
+const Mapper = require('./mapper').Mapper;
+const Mappers = require('./mapper').Mappers;
+const PatternBase = require('./pattern').PatternBase;
+const P = require('./pattern').P;
 
 class PatternCase {
     pattern: PatternBase;
