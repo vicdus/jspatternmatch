@@ -5,15 +5,12 @@
   "dependencies": {
     "babel-preset-env": "^1.6.1",
     "flow-bin": "latest",
-    "immutable": "4.0.0-rc.9"
-  },
-  "main": "index.js",
-  "devDependencies": {
+    "immutable": "4.0.0-rc.9",
     "babel-cli": "latest",
     "babel-plugin-transform-class-properties": "latest",
-    "babel-preset-flow": "latest",
-    "flow-bin": "latest"
+    "babel-preset-flow": "latest"
   },
+  "main": "index.js",
   "scripts": {
     "flow": "flow",
     "build": "babel src/ -d lib/"

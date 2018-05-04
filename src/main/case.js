@@ -27,3 +27,4 @@ const Cases = {
 
 module.exports.Case = Case;
 module.exports.PatternCase = PatternCase;
+module.exports.Cases = Cases;

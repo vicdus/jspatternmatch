@@ -16,7 +16,6 @@ class Matcher {
     match(src: any) {
         const found = this.cases.find(c => c.pattern.predicate(src));
         if (found) {
-            console.log('mapfunc = ', found.mapper.map_func);
             const cur_env = env.pop();
             const res = found.mapper.map_func(Object.keys(cur_env).length === 0 ? src : cur_env);
             env.flush();
@@ -48,3 +47,4 @@ class Matcher {
     }
 }
 
+module.exports = Matcher;

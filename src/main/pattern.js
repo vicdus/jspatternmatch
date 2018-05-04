@@ -93,7 +93,7 @@ class ArrayExactPattern extends SimplePattern {
         if (patterns instanceof Array) {
             return (src: Array<PatternBase>) => {
                 return src instanceof Array &&
-                    src.length !== patterns.length &&
+                    src.length === patterns.length &&
                     Array.from(patterns.entries()).every(([ind, p]) => P.create(p).predicate(src[ind]));
             };
         } else {
