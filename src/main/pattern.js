@@ -91,11 +91,10 @@ class ArrayExactPattern extends SimplePattern {
 
     static _get_predicate_function(patterns: Array<PatternBase>) {
         if (patterns instanceof Array) {
-            return (src: Array<PatternBase>) => {
-                return src instanceof Array &&
-                    src.length === patterns.length &&
-                    Array.from(patterns.entries()).every(([ind, p]) => P.create(p).predicate(src[ind]));
-            };
+            return (src: Array<PatternBase>) =>
+                src instanceof Array &&
+                src.length === patterns.length &&
+                Array.from(patterns.entries()).every(([ind, p]) => P.create(p).predicate(src[ind]));
         } else {
             throw 'Must init with Array of patterns!';
         }
@@ -124,10 +123,11 @@ class ObjectPattern extends SimplePattern {
     }
 
     static _get_predicate_function(obj: Object) {
-        return (src: Object) => Object.entries(obj).every(([prop_name, predicator]) =>
+        return (src: Object) =>
             src instanceof Object &&
-            src.hasOwnProperty(prop_name) &&
-            P.create(predicator).predicate(src[prop_name]));
+            Object.entries(obj).every(([prop_name, predicator]) =>
+                src.hasOwnProperty(prop_name) &&
+                P.create(predicator).predicate(src[prop_name]));
     }
 }
 
