@@ -3,8 +3,7 @@
   "version": "0.0.1",
   "description": "Javascript pattern match library",
   "dependencies": {
-    "babel-preset-env": "^1.6.1",
-    "flow-bin": "latest",
+    "babel-preset-env": "latest",
     "immutable": "4.0.0-rc.9",
     "babel-cli": "latest",
     "babel-plugin-transform-class-properties": "latest",
@@ -12,9 +11,14 @@
   },
   "main": "index.js",
   "scripts": {
+    "test": "jest",
     "flow": "flow",
     "build": "babel src/ -d lib/"
   },
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "jest": "^22.4.3",
+    "flow-bin": "latest"
+  }
 }
