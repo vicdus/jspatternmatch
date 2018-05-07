@@ -1,7 +1,7 @@
 // @flow
 
 
-class env {
+class Env {
     static _envs = [{}];
 
     constructor() {
@@ -9,25 +9,25 @@ class env {
     }
 
     static head() {
-        return env._envs[env._envs.length - 1];
+        return Env._envs[Env._envs.length - 1];
     }
 
     static put(name: string, value: any) {
-        env.head()[name] = value;
+        Env.head()[name] = value;
     }
 
     static dup_head() {
-        env._envs.push(Object.assign({}, env.head()));
+        Env._envs.push(Object.assign({}, Env.head()));
     }
 
     static pop() {
-        return env._envs.pop();
+        return Env._envs.pop();
     }
 
     static flush() {
-        env._envs = [{}];
+        Env._envs = [{}];
     }
 
 }
 
-module.exports = env;
+module.exports = Env;

@@ -3,7 +3,7 @@
 
 const Matcher = require('../main/matcher');
 const P = require('../main/pattern').P;
-const Cases = require('../main/case').Cases;
+const Cases = require('../main/cases');
 
 const m = Matcher.create([
     '123', x => console.log(x),

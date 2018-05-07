@@ -1,17 +1,7 @@
 // @flow
 
-const env = require('./env');
-
-class PatternBase {
-    predicate(src: any): boolean {
-        throw 'do not use base predicate';
-    }
-
-    static create(predicate: any) {
-        throw 'please implement create function';
-    }
-}
-
+const Env = require('./Env');
+const PatternBase = require('./PatternBase');
 
 class SimplePattern extends PatternBase {
     _predicator: any => boolean;
@@ -50,11 +40,11 @@ class BindingPattern extends SimplePattern {
 
     predicate(src: any): boolean {
         if (this.pattern.predicate(src)) {
-            env.dup_head();
-            env.put(this.name, src);
+            Env.dup_head();
+            Env.put(this.name, src);
             return true;
         } else {
-            env.flush();
+            Env.flush();
             return false;
         }
     }
@@ -64,6 +54,7 @@ class BindingPattern extends SimplePattern {
         return new BindingPattern(P.create(predicator), name);
     }
 }
+
 
 class LiteralEqualsPattern extends SimplePattern {
     static create(base_type_value: string | number | boolean) {
@@ -101,6 +92,7 @@ class ArrayExactPattern extends SimplePattern {
     }
 }
 
+
 class ArrayAllPattern extends SimplePattern {
     static create(pattern: PatternBase) {
         return new SimplePattern(src =>
@@ -130,6 +122,7 @@ class ObjectPattern extends SimplePattern {
                 P.create(predicator).predicate(src[prop_name]));
     }
 }
+
 
 class P {
     static AcceptAllPattern = SimplePattern.create(x => true);

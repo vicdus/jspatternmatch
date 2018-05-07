@@ -1,8 +1,9 @@
 // @flow
 
-const PatternCase = require('./case').PatternCase;
-const Case = require('./case').Case;
-const env = require('./env');
+
+const PatternCase = require('./PatternCase');
+const Case = require('./case');
+const Env = require('./Env');
 const P = require('./pattern').P;
 
 
@@ -16,9 +17,9 @@ class Matcher {
     match(src: any) {
         const found = this.cases.find(c => c.pattern.predicate(src));
         if (found) {
-            const cur_env = env.pop();
+            const cur_env = Env.pop();
             const res = found.mapper.map_func(Object.keys(cur_env).length === 0 ? src : cur_env);
-            env.flush();
+            Env.flush();
             return res;
         } else {
             throw 'Not match!';
@@ -33,8 +34,6 @@ class Matcher {
                 cases.push(e);
             } else if (temp !== null) {
                 // temp is pattern, e is mapper
-                // temp = P.create(temp);
-                // e = Mapper.create(e);
                 cases.push(Case(temp, e));
                 temp = null;
             } else if (temp === null) {
