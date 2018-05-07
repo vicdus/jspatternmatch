@@ -25,7 +25,17 @@ class SimplePattern extends PatternBase {
     }
 
     as(name: string) {
-        return BindingPattern.create(this._predicator, name);
+        return BindingPattern.create(this, name);
+    }
+}
+
+class AlwaysAcceptPattern extends SimplePattern {
+    constructor() {
+        super(src => true);
+    }
+
+    static create() {
+        return new AlwaysAcceptPattern();
     }
 }
 
@@ -51,7 +61,6 @@ class BindingPattern extends SimplePattern {
         }
     }
 
-    // $FlowFixMe
     static create(predicator: any, name: string) {
         return new BindingPattern(P.create(predicator), name);
     }
@@ -64,14 +73,12 @@ class LiteralEqualsPattern extends SimplePattern {
     }
 }
 
-class ArrayRestPattern extends SimplePattern {
-    predicate(src: any): boolean {
-        return true;
-    }
-
+class ArrayRestPattern extends AlwaysAcceptPattern {
     static create() {
         return new ArrayRestPattern();
     }
+
+
 }
 
 class ArrayPattern extends SimplePattern {
@@ -94,10 +101,10 @@ class ArrayPattern extends SimplePattern {
     static _get_predicate_function(predicators: Array<any>) {
         if (predicators instanceof Array) {
             return (src) => {
-                if (src instanceof Array && src.length === predicators.length) {
+                if (src instanceof Array) {
                     for (const [ind, p] of Array.from(predicators.entries())) {
-                        if (p instanceof ArrayRestPattern) {
-                            return true;
+                        if ((p instanceof ArrayRestPattern) || (p instanceof BindingPattern && p.pattern instanceof ArrayRestPattern)) {
+                            return p.predicate(src.slice(ind));
                         } else if (!P.create(p).predicate(src[ind])) {
                             return false;
                         }
