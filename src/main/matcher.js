@@ -4,7 +4,7 @@
 const PatternCase = require('./PatternCase');
 const Case = require('./case');
 const Env = require('./Env');
-const P = require('./pattern').P;
+const P = require('./P');
 
 
 class Matcher {
@@ -22,7 +22,7 @@ class Matcher {
             Env.flush();
             return res;
         } else {
-            throw 'Not match!';
+            throw 'No match!';
         }
     };
 

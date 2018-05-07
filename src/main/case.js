@@ -3,7 +3,7 @@
 
 const Mapper = require('./mapper');
 const PatternBase = require('./PatternBase');
-const P = require('./pattern').P;
+const P = require('./P');
 const PatternCase = require('./PatternCase');
 
 

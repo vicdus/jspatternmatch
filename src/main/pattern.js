@@ -3,6 +3,7 @@
 const Env = require('./Env');
 const PatternBase = require('./PatternBase');
 
+
 class SimplePattern extends PatternBase {
     _predicator: any => boolean;
 
@@ -27,6 +28,7 @@ class SimplePattern extends PatternBase {
         return BindingPattern.create(this._predicator, name);
     }
 }
+
 
 class BindingPattern extends SimplePattern {
     name: string;
@@ -62,32 +64,51 @@ class LiteralEqualsPattern extends SimplePattern {
     }
 }
 
+class ArrayRestPattern extends SimplePattern {
+    predicate(src: any): boolean {
+        return true;
+    }
 
-class ArrayExactPattern extends SimplePattern {
+    static create() {
+        return new ArrayRestPattern();
+    }
+}
+
+class ArrayPattern extends SimplePattern {
     patterns: Array<PatternBase>;
 
     constructor(patterns: Array<PatternBase>) {
-        super(ArrayExactPattern._get_predicate_function(patterns));
+        super(ArrayPattern._get_predicate_function(patterns));
         this.patterns = patterns;
     }
 
     static create(patterns: Array<PatternBase>) {
         if (patterns instanceof Array) {
-            return new ArrayExactPattern(patterns);
+            return new ArrayPattern(patterns);
         } else {
             throw 'Must init with Array of patterns!';
         }
 
     }
 
-    static _get_predicate_function(patterns: Array<PatternBase>) {
-        if (patterns instanceof Array) {
-            return (src: Array<PatternBase>) =>
-                src instanceof Array &&
-                src.length === patterns.length &&
-                Array.from(patterns.entries()).every(([ind, p]) => P.create(p).predicate(src[ind]));
+    static _get_predicate_function(predicators: Array<any>) {
+        if (predicators instanceof Array) {
+            return (src) => {
+                if (src instanceof Array && src.length === predicators.length) {
+                    for (const [ind, p] of Array.from(predicators.entries())) {
+                        if (p instanceof ArrayRestPattern) {
+                            return true;
+                        } else if (!P.create(p).predicate(src[ind])) {
+                            return false;
+                        }
+                    }
+                    return true;
+                } else {
+                    return false;
+                }
+            };
         } else {
-            throw 'Must init with Array of patterns!';
+            throw 'Must init with Array of predicators!';
         }
     }
 }
@@ -135,7 +156,7 @@ class P {
             if (p.constructor.name === PatternBase.name) throw 'do not use pattern base directly';
             return p;
         } else if (p instanceof Array) {
-            return ArrayExactPattern.create(p);
+            return ArrayPattern.create(p);
         } else if (p instanceof Function) {
             return SimplePattern.create(p);
         } else if (p instanceof Object) {
@@ -155,5 +176,8 @@ class P {
 }
 
 
-module.exports.PatternBase = PatternBase;
 module.exports.P = P;
+
+module.exports.REST = ArrayRestPattern.create();
+
+
