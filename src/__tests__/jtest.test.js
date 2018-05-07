@@ -38,6 +38,8 @@ test('Array match', () => {
     );
 
     expect(m.match([1, 2, 3])).toEqual('one two three');
+    expect(() => m.match([1, 2, 3, 4])).toThrow('No match!');
+    expect(() => m.match([1, 2])).toThrow('No match!');
     expect(m.match([0, 233, null, 'string'])).toEqual([233, null, 'string']);
 });
 

@@ -107,6 +107,8 @@ class ArrayPattern extends SimplePattern {
                             return p.predicate(src.slice(ind));
                         } else if (!P.create(p).predicate(src[ind])) {
                             return false;
+                        } else if (ind === predicators.length - 1 && ind < src.length - 1) {
+                            return false;
                         }
                     }
                     return true;

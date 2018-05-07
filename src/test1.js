@@ -1,9 +1,8 @@
 // @flow
 
 
-const Matcher = require('../main/matcher');
-const P = require('../main/pattern').P;
-const Cases = require('../main/cases');
+const Matcher = require('./main/matcher');
+const P = require('./main/pattern').P;
 
 const m = Matcher.create([
     '123', x => console.log(x),
@@ -31,7 +30,6 @@ const matcher = Matcher.create([
         status: 200,
         content: P.string.as('ct')
     }, src => ('200 and have content! status code' + src.ct),
-    Cases.AcceptAllAlwaysThrowCase,
 ]);
 
 
