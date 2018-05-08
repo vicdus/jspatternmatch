@@ -194,3 +194,4 @@ class P {
 module.exports.P = P;
 module.exports.REST = ArrayRestPattern.create();
 module.exports.ANY = AlwaysAcceptPattern.create();
+module.exports.Literal = (literal: any) => LiteralEqualsPattern.create(literal);
