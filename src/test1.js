@@ -4,7 +4,7 @@
 const Matcher = require('./main/matcher');
 const P = require('./main/pattern').P;
 
-const m = Matcher.create([
+const m = Matcher([
     '123', x => console.log(x),
     ['@whatever', '@anything'], x => console.log(x),
     {code: '@code'}, x => console.log(x),
@@ -18,7 +18,7 @@ m.match('123');
 m.match([333, 999]);
 
 
-const matcher = Matcher.create([
+const matcher = Matcher([
     [x => x > 100, 'xixi'], 'Literal match [>100, xixi]',
     P.string, 'Your input is a string',
     x => x === 100, x => x + 200,

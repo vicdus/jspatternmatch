@@ -187,5 +187,5 @@ class P {
 
 module.exports.P = P;
 module.exports.REST = ArrayRestPattern.create();
-module.exports.ANY = ArrayRestPattern.AlwaysAcceptPattern();
+module.exports.ANY = AlwaysAcceptPattern.create();
 

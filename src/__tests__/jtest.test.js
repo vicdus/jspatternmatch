@@ -3,14 +3,14 @@ const P = require('../main/P');
 const REST = require('../main/pattern').REST;
 
 test('Literal match', () => {
-    const m = Matcher.create([
-            'literal string', 'Your result is Literal String',
+    const m = Matcher([
+            'literal', 'Your result is Literal String',
             16, x => x * 2,
             undefined, 'Something undefined!',
             null, 'nullable thing'
         ]
     );
-    expect(m.match('literal string')).toEqual('Your result is Literal String');
+    expect(m.match('literal')).toEqual('Your result is Literal String');
     expect(m.match(16)).toEqual(32);
     expect(m.match(undefined)).toEqual('Something undefined!');
     expect(() => m.match('NO_MATCH')).toThrow('No match!');
@@ -18,7 +18,7 @@ test('Literal match', () => {
 
 
 test('Object match', () => {
-    const m = Matcher.create([
+    const m = Matcher([
             {status: 200, type: 'text', content: '@some_content'}, e => e.some_content,
             {status: 404}, 'NOT FOUND!'
         ]
@@ -33,7 +33,7 @@ test('Object match', () => {
 
 
 test('Array match', () => {
-    const m = Matcher.create([
+    const m = Matcher([
             [1, 2, 3], 'one two three',
             [0, REST], 'array that start with zero',
         ]
@@ -47,7 +47,7 @@ test('Array match', () => {
 
 
 test('Array match with binding', () => {
-    const m = Matcher.create([
+    const m = Matcher([
             [1, 2, 3], 'one two three',
             [0, '@second', REST.as('third_and_rest')], env => {
                 return {'second': env.second, 'rest': env.third_and_rest};

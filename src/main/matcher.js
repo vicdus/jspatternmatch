@@ -7,7 +7,7 @@ const Env = require('./Env');
 const P = require('./P');
 
 
-class Matcher {
+class PatternMatcher {
     cases: Array<PatternCase>;
 
     constructor(cases: Array<PatternCase>) {
@@ -42,8 +42,11 @@ class Matcher {
                 throw 'bad init';
             }
         });
-        return new Matcher(cases);
+        return new PatternMatcher(cases);
     }
 }
+
+
+const Matcher = (items: Array<any>) => PatternMatcher.create(items);
 
 module.exports = Matcher;
