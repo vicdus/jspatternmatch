@@ -77,8 +77,6 @@ class ArrayRestPattern extends AlwaysAcceptPattern {
     static create() {
         return new ArrayRestPattern();
     }
-
-
 }
 
 class ArrayPattern extends SimplePattern {
@@ -108,6 +106,9 @@ class ArrayPattern extends SimplePattern {
                         } else if (!P.create(p).predicate(src[ind])) {
                             return false;
                         } else if (ind === predicators.length - 1 && ind < src.length - 1) {
+                            // unmatched remainder of src array
+                            return false;
+                        } else if (ind > src.length - 1) {
                             return false;
                         }
                     }
@@ -172,6 +173,8 @@ class P {
             return ObjectPattern.create(p);
         } else if (typeof p === 'string' && p[0] === '@') {
             return BindingPattern.create(x => true, p.slice(1));
+        } else if (p === '_') {
+            return AlwaysAcceptPattern.create();
         } else if (typeof p === 'string' || typeof p === 'number' || typeof p === 'boolean' || p === null || p === undefined) {
             return LiteralEqualsPattern.create(p);
         }
@@ -188,4 +191,3 @@ class P {
 module.exports.P = P;
 module.exports.REST = ArrayRestPattern.create();
 module.exports.ANY = AlwaysAcceptPattern.create();
-
