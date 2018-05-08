@@ -102,13 +102,16 @@ class ArrayPattern extends SimplePattern {
                 if (src instanceof Array) {
                     for (const [ind, p] of Array.from(predicators.entries())) {
                         if ((p instanceof ArrayRestPattern) || (p instanceof BindingPattern && p.pattern instanceof ArrayRestPattern)) {
+                            // match rest of array, always true
                             return p.predicate(src.slice(ind));
-                        } else if (!P.create(p).predicate(src[ind])) {
+                        } else if (ind > src.length - 1) {
+                            // src array too short
                             return false;
                         } else if (ind === predicators.length - 1 && ind < src.length - 1) {
-                            // unmatched remainder of src array
+                            // unmatched remainder of src array. i.e src array too long
                             return false;
-                        } else if (ind > src.length - 1) {
+                        } else if (!P.create(p).predicate(src[ind])) {
+                            // if doesn't match
                             return false;
                         }
                     }

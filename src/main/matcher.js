@@ -17,6 +17,7 @@ class PatternMatcher {
     match(src: any) {
         const found = this.cases.find(c => c.pattern.predicate(src));
         if (found) {
+            // TODO: this is wrong, fix to support nested matching.
             const cur_env = Env.pop();
             const res = found.mapper.map_func(Object.keys(cur_env).length === 0 ? src : cur_env);
             Env.flush();
