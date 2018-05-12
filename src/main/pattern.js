@@ -51,16 +51,17 @@ class BindingPattern extends SimplePattern {
     }
 
     predicate(src: any): boolean {
+        Env.dup_head();
         if (this.pattern.predicate(src)) {
-            Env.dup_head();
             Env.put(this.name, src);
             return true;
         } else {
-            Env.flush();
+            Env.pop();
             return false;
         }
     }
 
+    // $FlowFixMe
     static create(predicator: any, name: string) {
         return new BindingPattern(P.create(predicator), name);
     }
@@ -98,7 +99,7 @@ class ArrayPattern extends SimplePattern {
 
     static _get_predicate_function(predicators: Array<any>) {
         if (predicators instanceof Array) {
-            return (src) => {
+            return (src: any) => {
                 if (src instanceof Array) {
                     for (const [ind, p] of Array.from(predicators.entries())) {
                         if ((p instanceof ArrayRestPattern) || (p instanceof BindingPattern && p.pattern instanceof ArrayRestPattern)) {
