@@ -3,7 +3,7 @@
 
 const Matcher = require('./main/matcher');
 const P = require('./main/pattern').P;
-
+const Env = require('./main/Env');
 
 const m = Matcher([
     {'a': {'b': '@b_val', 'c': '@c_val'}}, x => console.log(x),
@@ -12,7 +12,7 @@ const m = Matcher([
 
 
 m.match({'a': {'b': 4, 'd': 2}});
-
+console.log(Env._envs);
 
 // const m = Matcher([
 //     '123', x => console.log(x),

@@ -29,6 +29,7 @@ class SimplePattern extends PatternBase {
     }
 }
 
+
 class AlwaysAcceptPattern extends SimplePattern {
     constructor() {
         super(src => true);
@@ -51,34 +52,39 @@ class BindingPattern extends SimplePattern {
     }
 
     predicate(src: any): boolean {
-        Env.dup_head();
         if (this.pattern.predicate(src)) {
             Env.put(this.name, src);
             return true;
         } else {
-            Env.pop();
+            Env.reset_head();
             return false;
         }
     }
 
     // $FlowFixMe
     static create(predicator: any, name: string) {
-        return new BindingPattern(P.create(predicator), name);
+        if (typeof(name) === 'string' && name.length > 0) {
+            return new BindingPattern(P.create(predicator), name);
+        } else {
+            throw 'Invalid binding name. Must be non-empty string';
+        }
     }
 }
 
 
 class LiteralEqualsPattern extends SimplePattern {
-    static create(base_type_value: string | number | boolean) {
-        return new SimplePattern(src => base_type_value === src);
+    static create(expected: any) {
+        return new SimplePattern(src => src === expected);
     }
 }
+
 
 class ArrayRestPattern extends AlwaysAcceptPattern {
     static create() {
         return new ArrayRestPattern();
     }
 }
+
 
 class ArrayPattern extends SimplePattern {
     patterns: Array<PatternBase>;
@@ -94,12 +100,12 @@ class ArrayPattern extends SimplePattern {
         } else {
             throw 'Must init with Array of patterns!';
         }
-
     }
 
     static _get_predicate_function(predicators: Array<any>) {
         if (predicators instanceof Array) {
             return (src: any) => {
+                Env.dup_head();
                 if (src instanceof Array) {
                     for (const [ind, p] of Array.from(predicators.entries())) {
                         if ((p instanceof ArrayRestPattern) || (p instanceof BindingPattern && p.pattern instanceof ArrayRestPattern)) {
@@ -107,32 +113,27 @@ class ArrayPattern extends SimplePattern {
                             return p.predicate(src.slice(ind));
                         } else if (ind > src.length - 1) {
                             // src array too short
+                            Env.pop();
                             return false;
                         } else if (ind === predicators.length - 1 && ind < src.length - 1) {
                             // unmatched remainder of src array. i.e src array too long
+                            Env.pop();
                             return false;
                         } else if (!P.create(p).predicate(src[ind])) {
                             // if doesn't match
+                            Env.pop();
                             return false;
                         }
                     }
                     return true;
                 } else {
+                    Env.pop();
                     return false;
                 }
             };
         } else {
             throw 'Must init with Array of predicators!';
         }
-    }
-}
-
-
-class ArrayAllPattern extends SimplePattern {
-    static create(pattern: PatternBase) {
-        return new SimplePattern(src =>
-            src instanceof Array &&
-            src.every(e => pattern.predicate(e)));
     }
 }
 
@@ -150,11 +151,18 @@ class ObjectPattern extends SimplePattern {
     }
 
     static _get_predicate_function(obj: Object) {
-        return (src: Object) =>
-            src instanceof Object &&
-            Object.entries(obj).every(([prop_name, predicator]) =>
-                src.hasOwnProperty(prop_name) &&
-                P.create(predicator).predicate(src[prop_name]));
+        return (src: Object) => {
+            Env.dup_head();
+            if (src instanceof Object &&
+                Object.entries(obj).every(([prop_name, predicator]) =>
+                    src.hasOwnProperty(prop_name) &&
+                    P.create(predicator).predicate(src[prop_name]))) {
+                return true;
+            } else {
+                Env.pop();
+                return false;
+            }
+        };
     }
 }
 
@@ -166,6 +174,7 @@ class P {
     static nonEmptyArr = SimplePattern.create(x => x instanceof Array && x.length > 0);
 
     static create(p: any) {
+        // TODO: Refactor this when necessary. It's ok for now.
         if (p instanceof PatternBase) {
             if (p.constructor.name === PatternBase.name) throw 'do not use pattern base directly';
             return p;
@@ -186,7 +195,6 @@ class P {
     };
 
     static as(p: any, name: string) {
-        // $FlowFixMe
         return P.create(p).as(name);
     }
 }

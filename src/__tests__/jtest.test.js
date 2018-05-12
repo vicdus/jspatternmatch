@@ -2,7 +2,7 @@ const Matcher = require('../main/matcher');
 const P = require('../main/P');
 const REST = require('../main/pattern').REST;
 const ANY = require('../main/pattern').ANY;
-
+const Env = require('../main/Env');
 
 test('Literal match', () => {
     const m = Matcher([
@@ -70,6 +70,34 @@ test('Array match with binding', () => {
 });
 
 
+test('Nested Array and Object binding', () => {
+    const m = Matcher([
+            'no-nest', 'no any nest',
+            {parent: {child1: '@child1'}}, env => env,
+            {parent: {child2: ['@child2']}}, env => env,
+            {parent: {child3: '@child3'}}, env => env,
+        ]
+    );
+
+    expect(Env._envs).toEqual([{}]);
+    expect(m.match({parent: {child1: 'c1'}})).toEqual({child1: 'c1'});
+    expect(Env._envs).toEqual([{}]);
+    expect(m.match({parent: {child2: ['c2']}})).toEqual({child2: 'c2'});
+    expect(Env._envs).toEqual([{}]);
+    expect(m.match({parent: {child3: 'c3'}})).toEqual({child3: 'c3'});
+    expect(Env._envs).toEqual([{}]);
+});
+
+
+test('Nested Matcher', () => {
+    const m = Matcher([
+            {a: '@val'}, e => Matcher([0, 'zero', '_', 'not zero']).match(e.val)
+        ]
+    );
+
+    console.log(m.match({a: 0}));
+    console.log(m.match({a: 1}));
+});
 
 
 
