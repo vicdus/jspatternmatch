@@ -14,10 +14,8 @@ test('Literal match', () => {
         ]
     );
     expect(m.match('literal')).toEqual('Your result is Literal String');
-
     expect(m.match(16)).toEqual(32);
     expect(m.match(undefined)).toEqual('Something undefined!');
-
     expect(m.match('WHATEVER ELSE')).toEqual('Anything else');
     expect(m.match(['WHATEVER ELSE', 'IGNORE TYPE'])).toEqual('Anything else');
 });
@@ -32,7 +30,6 @@ test('Object match', () => {
 
     expect(m.match({status: 200, type: 'text', content: 'hello world!'})).toEqual('hello world!');
     expect(m.match({status: 404, errmsg: 'err'})).toEqual('NOT FOUND!');
-
     expect(() => m.match({status: 200, type: 'text'})).toThrow('No match!');
     expect(() => m.match({status: 500})).toThrow('No match!');
     expect(() => m.match({})).toThrow('No match!');
@@ -48,17 +45,15 @@ test('Array match', () => {
 
     expect(m.match([1, 2, 3])).toEqual('one two three');
     expect(m.match([0, 233, null, 'string'])).toEqual('array that start with zero');
-
     expect(() => m.match([1, 2, 3, 4])).toThrow('No match!');
     expect(() => m.match([1, 2])).toThrow('No match!');
-
 });
 
 
 test('Array match with binding', () => {
     const m = Matcher([
             [1, 2, 3], 'one two three',
-            [0, '@second', REST.as('third_and_rest')], env => ({'second': env.second, 'rest': env.third_and_rest}),
+            [0, '@second', REST.as('third_and_rest')], env => ({second: env.second, rest: env.third_and_rest}),
             [233, ANY.as('second')], e => 'second is ' + e.second,
             [1, 3, 5], src => src.map(num => num * num)
         ]
@@ -68,8 +63,6 @@ test('Array match with binding', () => {
     expect(m.match([0, 233, null, 'string'])).toEqual({second: 233, rest: [null, 'string']});
     expect(m.match([1, 3, 5])).toEqual([1, 9, 25]);
     expect(m.match([233, 666])).toEqual('second is 666');
-
-
     expect(() => m.match([233])).toThrow('No match!');
     expect(() => m.match([233, 666, 666])).toThrow('No match!');
     expect(() => m.match([1, 2, 3, 4])).toThrow('No match!');
